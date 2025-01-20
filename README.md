@@ -29,7 +29,7 @@ Bu proje, web tarayıcısı üzerinden EAN-8, EAN-13, Code128 gibi 1D (tek boyut
 - Barkod algılanınca ekranda değeri ve barkod tipi (EAN-8, EAN-13, Code128) gösterilir.
 - “Kamerayı Durdur” ile taramayı durdur.
 
-![Barkod Tarama Ekran Görüntüsü](./screenshot.png)
+![Barkod Tarama Ekran Görüntüsü](./screenshot.jpg)
 
 ## Dikkat Edilmesi Gerekenler
 - Işık ve Netlik: Karanlık veya parlama olan ortamlarda barkod zor okunabilir.
