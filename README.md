@@ -1,8 +1,8 @@
-#1D Barkod Okuyucu
+# 1D Barkod Okuyucu
 
 Bu proje, web tarayıcısı üzerinden EAN-8, EAN-13, Code128 gibi 1D (tek boyutlu) barkodları okumayı sağlar. Kullanıcı, cep telefonunun kamerasıyla barkodu tarayarak değerini ve türünü ekranda görebilir. Projede JavaScript tabanlı bir barkod kütüphanesi kullanılır ve mobil cihazın kamerasına tarayıcıdan erişim izni (HTTPS gerekliliği) aracılığıyla canlı tarama yapılır.
 
-##Özellikler
+## Özellikler
 - Canlı Önizleme: Barkodu kameraya gösterirken tarayıcıda canlı görüntü alınır.
 - Desteklenen Formatlar:
 - EAN-8
@@ -11,7 +11,7 @@ Bu proje, web tarayıcısı üzerinden EAN-8, EAN-13, Code128 gibi 1D (tek boyut
 - Otomatik Tanıma: Barkod algılanır algılanmaz ekranda değeri (metin) ve barkod tipi gösterilir.
 - Başlat/Durdur: Kolay kullanım için iki butonla kamerayı açıp kapatabilme.
 - Mobil Uyumluluk: Modern akıllı telefonlardaki arka kamerayla test edilmeye uygundur.
-##Kurulum ve Çalıştırma
+## Kurulum ve Çalıştırma
 1. Proje Dosyaları:
 - Bu repo içerisindeki index.html (veya barcode.html gibi) dosyasını indir veya kopyala.
 2. Sunucu Ayarı (HTTPS):
@@ -31,16 +31,16 @@ Bu proje, web tarayıcısı üzerinden EAN-8, EAN-13, Code128 gibi 1D (tek boyut
 
 ![Barkod Tarama Ekran Görüntüsü](./screenshot.png)
 
-##Dikkat Edilmesi Gerekenler
+## Dikkat Edilmesi Gerekenler
 - Işık ve Netlik: Karanlık veya parlama olan ortamlarda barkod zor okunabilir.
 - Arka Kamera: facingMode: "environment" ayarı her cihazda doğru çalışmayabilir. Gerekirse facingMode: "user" ile ön kamerayı test edebilirsin.
 - Barkod Boyutu: Kameraya çok yakın veya çok uzak tutmak sorun yaratabilir. Orta mesafede barkod net gözükmeli.
 - Tarayıcı Desteği: getUserMedia API’si modern tarayıcıların çoğunda çalışır. Eski Android sürümlerinde veya iOS 11.2 öncesinde kısıtlamalar olabilir.
 
-##Katkıda Bulunun
+## Katkıda Bulunun
 - Pull request veya issue açarak geliştirmelere katkıda bulunabilirsin.
 - Yeni barkod formatları eklemek istersen, kullandığımız JS kütüphanesinin (örneğin Quagga, ZXing, vb.) desteklenen format listesine göz atarak ayar dosyalarında decoder/readers bölümüne yeni formatları ekleyebilirsin.
 
-##İletişim
+## İletişim
 - Proje Sahibi: Arda (veya GitHub kullanıcı adın)
 - İletişim için GitHub üzerinden mesaj atabilir veya e-posta gönderebilirsiniz.
