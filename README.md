@@ -42,5 +42,5 @@ Bu proje, web tarayıcısı üzerinden EAN-8, EAN-13, Code128 gibi 1D (tek boyut
 - Yeni barkod formatları eklemek istersen, kullandığımız JS kütüphanesinin (örneğin Quagga, ZXing, vb.) desteklenen format listesine göz atarak ayar dosyalarında decoder/readers bölümüne yeni formatları ekleyebilirsin.
 
 ## İletişim
-- Proje Sahibi: Arda (veya GitHub kullanıcı adın)
+- Proje Sahibi: Arda Balkan
 - İletişim için GitHub üzerinden mesaj atabilir veya e-posta gönderebilirsiniz.
