@@ -111,6 +111,11 @@ Sevgiler...
     <div id="buttons">
       <button id="startButton">Kamerayı Başlat</button>
       <button id="stopButton" disabled>Kamerayı Durdur</button>
+      <select id="resolution" style="padding: 12px; margin: 5px; border-radius: 4px; border: 1px solid #007bff;">
+        <option value="hd">HD (1280x720)</option>
+        <option value="fhd">Full HD (1920x1080)</option>
+        <option value="low">Düşük (640x480)</option>
+      </select>
     </div>
 
     <script src="zxing-barcode.js"></script>
@@ -122,6 +127,7 @@ Sevgiler...
         const stopButton = document.getElementById("stopButton");
         const barcodeDataEl = document.getElementById("barcodeData");
         const barcodeTypeEl = document.getElementById("barcodeType");
+        const resolutionSelect = document.getElementById("resolution");
         let selectedDeviceId;
         let audioContext;
         let lastScannedCode = null;
@@ -195,6 +201,28 @@ Sevgiler...
                   device.label.toLowerCase().includes("arka")
               )?.deviceId || videoInputDevices[0].deviceId;
 
+            // Çözünürlük ayarlarını belirle
+            const constraints = {
+              video: {
+                deviceId: selectedDeviceId,
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+              }
+            };
+
+            // Seçilen çözünürlüğe göre ayarla
+            switch(resolutionSelect.value) {
+              case 'fhd':
+                constraints.video.width.ideal = 1920;
+                constraints.video.height.ideal = 1080;
+                break;
+              case 'low':
+                constraints.video.width.ideal = 640;
+                constraints.video.height.ideal = 480;
+                break;
+              // HD varsayılan
+            }
+
             await codeReader.decodeFromVideoDevice(
               selectedDeviceId,
               "video",
@@ -237,7 +265,8 @@ Sevgiler...
                 if (err && !(err instanceof ZXing.NotFoundException)) {
                   console.error("Okuma hatası:", err);
                 }
-              }
+              },
+              constraints // Çözünürlük ayarlarını geçir
             );
 
             console.log("Kamera başlatıldı");
@@ -265,6 +294,14 @@ Sevgiler...
         // Event listeners
         startButton.addEventListener("click", startScanning);
         stopButton.addEventListener("click", stopScanning);
+
+        // Çözünürlük değiştiğinde kamerayı yeniden başlat
+        resolutionSelect.addEventListener("change", () => {
+          if (!stopButton.disabled) { // Kamera açıksa
+            stopScanning();
+            startScanning();
+          }
+        });
 
         // Sayfa kapatılırken kamerayı temizle
         window.addEventListener("beforeunload", () => {
