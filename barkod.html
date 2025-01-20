@@ -127,6 +127,9 @@ Sevgiler...
       <button id="exportButton" style="background-color: #28a745">
         Dışa Aktar (CSV)
       </button>
+      <button id="clearButton" style="background-color: #dc3545">
+        Geçmişi Temizle
+      </button>
     </div>
 
     <script src="zxing-barcode.js"></script>
@@ -140,11 +143,14 @@ Sevgiler...
         const barcodeTypeEl = document.getElementById("barcodeType");
         const resolutionSelect = document.getElementById("resolution");
         const exportButton = document.getElementById("exportButton");
+        const clearButton = document.getElementById("clearButton");
         let selectedDeviceId;
         let audioContext;
         let lastScannedCode = null;
         let lastScanTime = 0;
-        let scanHistory = [];
+        let scanHistory = JSON.parse(
+          localStorage.getItem("scanHistory") || "[]"
+        );
 
         // Bip sesi çal
         function playBeep() {
@@ -209,6 +215,8 @@ Sevgiler...
             timestamp: new Date().toLocaleString("tr-TR"),
           };
           scanHistory.push(scan);
+          // LocalStorage'a kaydet
+          localStorage.setItem("scanHistory", JSON.stringify(scanHistory));
         }
 
         // CSV'ye dönüştür ve indir
@@ -221,16 +229,20 @@ Sevgiler...
           // CSV başlıkları
           const headers = ["Barkod", "Format", "Tarih"];
 
-          // CSV satırlarını oluştur
+          // CSV satırlarını oluştur - güvenli escape ile
           const csvRows = [
-            headers.join(","), // Başlık satırı
+            headers.join(","),
             ...scanHistory.map(
-              (scan) => `${scan.code},${scan.format},${scan.timestamp}`
+              (scan) =>
+                `"${scan.code.replace(/"/g, '""')}","${scan.format.replace(
+                  /"/g,
+                  '""'
+                )}","${scan.timestamp}"`
             ),
           ];
 
-          // CSV içeriğini oluştur
-          const csvContent = csvRows.join("\n");
+          // CSV içeriğini oluştur (BOM ekleyerek)
+          const csvContent = "\ufeff" + csvRows.join("\n");
 
           // Dosyayı indir
           const blob = new Blob([csvContent], {
@@ -249,6 +261,16 @@ Sevgiler...
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
+          URL.revokeObjectURL(url); // Belleği temizle
+        }
+
+        // Geçmişi temizleme fonksiyonu ekleyelim
+        function clearHistory() {
+          if (confirm("Tüm tarama geçmişi silinecek. Emin misiniz?")) {
+            scanHistory = [];
+            localStorage.removeItem("scanHistory");
+            alert("Geçmiş temizlendi!");
+          }
         }
 
         async function startScanning() {
@@ -361,6 +383,7 @@ Sevgiler...
         startButton.addEventListener("click", startScanning);
         stopButton.addEventListener("click", stopScanning);
         exportButton.addEventListener("click", exportToCSV);
+        clearButton.addEventListener("click", clearHistory);
 
         // Çözünürlük değiştiğinde kamerayı yeniden başlat
         resolutionSelect.addEventListener("change", () => {
