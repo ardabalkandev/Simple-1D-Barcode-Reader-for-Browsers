@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<!-- Arda Balkan hayratıdır. Ruhuna Fatiha. -->
+<!--
+Cep telefonunda görüntülediğim bir web sitesinde 
+el terminali gibi harici bir cihaza gerek duymadan
+barkod okutabilmek istiyordum. Yapay zekânın yardımıyla
+bu zımbırtı ortaya çıktı.
+Alın, tepe tepe kullanın, değiştirin, geliştirin.
+Sevgiler...
+-->
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Barkod Okuyucu</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { 
+      font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu;
+      margin: 0; 
+      padding: 20px; 
+      background: #f4f4f4; 
+    }
+    h1 { 
+      text-align: center;
+      color: #333;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    #videoContainer {
+      position: relative;
+      max-width: 600px;
+      margin: 20px auto;
+      border: 2px solid #007bff;
+      border-radius: 8px;
+      background: #000;
+      overflow: hidden;
+    }
+    video {
+      width: 100%;
+      height: 300px;
+      display: block;
+      object-fit: cover;
+    }
+    #result {
+      margin: 20px auto;
+      padding: 15px;
+      max-width: 600px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    #buttons {
+      text-align: center;
+      margin: 20px auto;
+      max-width: 600px;
+    }
+    button {
+      margin: 5px;
+      padding: 12px 24px;
+      cursor: pointer;
+      font-size: 16px;
+      border: none;
+      color: #fff;
+      background-color: #007bff;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    #stopButton {
+      background-color: #dc3545;
+    }
+    #stopButton:hover {
+      background-color: #c82333;
+    }
+    .result-item {
+      margin: 10px 0;
+      padding: 5px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .result-label {
+      font-weight: bold;
+      color: #007bff;
+    }
+  </style>
+</head>
+<body>
+  <h1>Barkod Okuyucu</h1>
+
+  <div id="videoContainer">
+    <video id="video" autoplay muted playsinline></video>
+  </div>
+
+  <div id="result">
+    <div class="result-item">
+      <span class="result-label">Barkod:</span> 
+      <span id="barcodeData">Henüz okunmadı</span>
+    </div>
+    <div class="result-item">
+      <span class="result-label">Tip:</span> 
+      <span id="barcodeType">Henüz okunmadı</span>
+    </div>
+  </div>
+
+  <div id="buttons">
+    <button id="startButton">Kamerayı Başlat</button>
+    <button id="stopButton" disabled>Kamerayı Durdur</button>
+  </div>
+
+  <script src="zxing-barcode.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const codeReader = new ZXing.BrowserMultiFormatReader();
+      const video = document.getElementById('video');
+      const startButton = document.getElementById('startButton');
+      const stopButton = document.getElementById('stopButton');
+      const barcodeDataEl = document.getElementById('barcodeData');
+      const barcodeTypeEl = document.getElementById('barcodeType');
+      let selectedDeviceId;
+      let audioContext;
+      let lastScannedCode = null;
+      let lastScanTime = 0;
+
+      // Bip sesi çal
+      function playBeep() {
+        // Eğer ses bağlamı yoksa oluştur
+        if (!audioContext) {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        const currentTime = audioContext.currentTime;
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(1000, currentTime); // 1000Hz frekansı değiştirerek daha farlı ses tonları elde edilebilir
+        gainNode.gain.setValueAtTime(0.1, currentTime); // Ses seviyesi
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + 0.1); // 100ms süreyle biple, burada sesin süresini değiştirebilirsiniz.
+      }
+
+      // Barkod formatını insan tarafından okunabilir formata çevir
+      function getReadableFormat(format) {
+        const formats = {
+          'EAN_13': 'EAN-13',
+          'EAN_8': 'EAN-8',
+          'CODE_128': 'Code 128',
+          'CODE_39': 'Code 39',
+          'UPC_A': 'UPC-A',
+          'UPC_E': 'UPC-E',
+          'QR_CODE': 'QR Code',
+          'DATA_MATRIX': 'Data Matrix',
+          'PDF_417': 'PDF 417',
+          'CODABAR': 'Codabar',
+          'ITF': 'ITF',
+          'RSS_14': 'RSS-14',
+          'RSS_EXPANDED': 'RSS Expanded',
+          '7': 'EAN-13' // Özel durum için eklendi, EAN13 barkod okuttuğumda tip 7 yazıyordu :))
+        };
+        
+        // Format string veya number olabilir, string'e çevirelim
+        const formatStr = format.toString().toUpperCase()
+          .replace('QRCODE', 'QR_CODE')
+          .replace('DATAMATRIX', 'DATA_MATRIX');
+        
+        return formats[formatStr] || 'Bilinmeyen Format';
+      }
+
+      async function startScanning() {
+        try {
+          const videoInputDevices = await codeReader.listVideoInputDevices();
+          console.log('Kamera listesi:', videoInputDevices);
+          
+          // Arka kamerayı bul
+          selectedDeviceId = videoInputDevices.find(device => 
+            device.label.toLowerCase().includes('back') ||
+            device.label.toLowerCase().includes('arka')
+          )?.deviceId || videoInputDevices[0].deviceId;
+
+          await codeReader.decodeFromVideoDevice(selectedDeviceId, 'video', (result, err) => {
+            if (result) {
+              const code = result.getText();
+              const format = getReadableFormat(result.getBarcodeFormat());
+              
+              // Eğer format bilinmiyorsa, barkod uzunluğuna göre tahmin et
+              let detectedFormat = format;
+              if (format === 'Bilinmeyen Format') {
+                if (code.length === 13) detectedFormat = 'EAN-13';
+                else if (code.length === 8) detectedFormat = 'EAN-8';
+                else if (code.length === 12) detectedFormat = 'UPC-A';
+                else if (code.length === 6) detectedFormat = 'UPC-E';
+              }
+
+              // Aynı barkodu tekrar tekrar okumayı ve bip sesini önle
+              const currentTime = Date.now();
+              if (code !== lastScannedCode || currentTime - lastScanTime > 2000) {
+                lastScannedCode = code;
+                lastScanTime = currentTime;
+                
+                barcodeDataEl.textContent = code;
+                barcodeTypeEl.textContent = detectedFormat;
+                console.log('Barkod okundu:', code, 'Format:', detectedFormat);
+                
+                // Bip sesi çal
+                playBeep();
+              }
+            }
+            if (err && !(err instanceof ZXing.NotFoundException)) {
+              console.error('Okuma hatası:', err);
+            }
+          });
+
+          console.log('Kamera başlatıldı');
+          startButton.disabled = true;
+          stopButton.disabled = false;
+
+        } catch (err) {
+          console.error('Kamera hatası:', err);
+          alert('Kamera başlatılamadı: ' + err.message);
+        }
+      }
+
+      function stopScanning() {
+        codeReader.reset();
+        console.log('Kamera durduruldu');
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        barcodeDataEl.textContent = 'Henüz okunmadı';
+        barcodeTypeEl.textContent = 'Henüz okunmadı';
+        
+        // Son okunan barkodu sıfırla
+        lastScannedCode = null;
+        lastScanTime = 0;
+      }
+
+      // Event listeners
+      startButton.addEventListener('click', startScanning);
+      stopButton.addEventListener('click', stopScanning);
+
+      // Sayfa kapatılırken kamerayı temizle
+      window.addEventListener('beforeunload', () => {
+        codeReader.reset();
+      });
+    });
+  </script>
+</body>
+</html>
