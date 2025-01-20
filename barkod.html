@@ -111,11 +111,22 @@ Sevgiler...
     <div id="buttons">
       <button id="startButton">Kamerayı Başlat</button>
       <button id="stopButton" disabled>Kamerayı Durdur</button>
-      <select id="resolution" style="padding: 12px; margin: 5px; border-radius: 4px; border: 1px solid #007bff;">
+      <select
+        id="resolution"
+        style="
+          padding: 12px;
+          margin: 5px;
+          border-radius: 4px;
+          border: 1px solid #007bff;
+        "
+      >
         <option value="hd">HD (1280x720)</option>
         <option value="fhd">Full HD (1920x1080)</option>
         <option value="low">Düşük (640x480)</option>
       </select>
+      <button id="exportButton" style="background-color: #28a745">
+        Dışa Aktar (CSV)
+      </button>
     </div>
 
     <script src="zxing-barcode.js"></script>
@@ -128,10 +139,12 @@ Sevgiler...
         const barcodeDataEl = document.getElementById("barcodeData");
         const barcodeTypeEl = document.getElementById("barcodeType");
         const resolutionSelect = document.getElementById("resolution");
+        const exportButton = document.getElementById("exportButton");
         let selectedDeviceId;
         let audioContext;
         let lastScannedCode = null;
         let lastScanTime = 0;
+        let scanHistory = [];
 
         // Bip sesi çal
         function playBeep() {
@@ -188,6 +201,56 @@ Sevgiler...
           return formats[formatStr] || "Bilinmeyen Format";
         }
 
+        // Tarama geçmişini kaydet
+        function saveScan(code, format) {
+          const scan = {
+            code: code,
+            format: format,
+            timestamp: new Date().toLocaleString("tr-TR"),
+          };
+          scanHistory.push(scan);
+        }
+
+        // CSV'ye dönüştür ve indir
+        function exportToCSV() {
+          if (scanHistory.length === 0) {
+            alert("Dışa aktarılacak kayıt bulunamadı!");
+            return;
+          }
+
+          // CSV başlıkları
+          const headers = ["Barkod", "Format", "Tarih"];
+
+          // CSV satırlarını oluştur
+          const csvRows = [
+            headers.join(","), // Başlık satırı
+            ...scanHistory.map(
+              (scan) => `${scan.code},${scan.format},${scan.timestamp}`
+            ),
+          ];
+
+          // CSV içeriğini oluştur
+          const csvContent = csvRows.join("\n");
+
+          // Dosyayı indir
+          const blob = new Blob([csvContent], {
+            type: "text/csv;charset=utf-8;",
+          });
+          const link = document.createElement("a");
+          const url = URL.createObjectURL(blob);
+
+          link.setAttribute("href", url);
+          link.setAttribute(
+            "download",
+            `barkod_taramalari_${new Date().toLocaleDateString("tr-TR")}.csv`
+          );
+          link.style.visibility = "hidden";
+
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+
         async function startScanning() {
           try {
             const videoInputDevices = await codeReader.listVideoInputDevices();
@@ -206,17 +269,17 @@ Sevgiler...
               video: {
                 deviceId: selectedDeviceId,
                 width: { ideal: 1280 },
-                height: { ideal: 720 }
-              }
+                height: { ideal: 720 },
+              },
             };
 
             // Seçilen çözünürlüğe göre ayarla
-            switch(resolutionSelect.value) {
-              case 'fhd':
+            switch (resolutionSelect.value) {
+              case "fhd":
                 constraints.video.width.ideal = 1920;
                 constraints.video.height.ideal = 1080;
                 break;
-              case 'low':
+              case "low":
                 constraints.video.width.ideal = 640;
                 constraints.video.height.ideal = 480;
                 break;
@@ -260,6 +323,9 @@ Sevgiler...
 
                     // Bip sesi çal
                     playBeep();
+
+                    // Taramayı geçmişe kaydet
+                    saveScan(code, detectedFormat);
                   }
                 }
                 if (err && !(err instanceof ZXing.NotFoundException)) {
@@ -294,10 +360,12 @@ Sevgiler...
         // Event listeners
         startButton.addEventListener("click", startScanning);
         stopButton.addEventListener("click", stopScanning);
+        exportButton.addEventListener("click", exportToCSV);
 
         // Çözünürlük değiştiğinde kamerayı yeniden başlat
         resolutionSelect.addEventListener("change", () => {
-          if (!stopButton.disabled) { // Kamera açıksa
+          if (!stopButton.disabled) {
+            // Kamera açıksa
             stopScanning();
             startScanning();
           }
